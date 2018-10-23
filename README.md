@@ -5,9 +5,8 @@ RemoteRelay is an alternative ESP8266 firmware for the relay board made by LCTec
 
 This board is a two-way relay over WiFi in a compact form factor and with a 3.3v onboard regulator to power the ESP8266.
 
-http://www.chinalctech.com/index.php?_m=mod_product&_a=view&p_id=1261
-
-[LcTech board](docs/board.jpg)
+![LcTech board](docs/board.jpg)
+See http://www.chinalctech.com/index.php?_m=mod_product&_a=view&p_id=1261
 
 You can usually find this cheap device on any chinese electronics retailer.
 
@@ -66,10 +65,10 @@ Then run 'Compile' and 'Upload'.
 If the ESP8266 module is not plugged into the same computer, you can also use the following command to upload the compiled binary :
 
 ```
-esptool.py --port /dev/ttyAMA0 write_flash -fm qio 0x00000 SmartThermostat.ino.generic.bin
+esptool.py --port /dev/ttyAMA0 write_flash -fm qio 0x00000 RemoteRelay.ino.generic.bin
 ```
 
-You can then put he module back on the board.
+You can then put the module back on the board.
 
 ## Debug and monitor serial output
 
@@ -108,23 +107,23 @@ By default, there is no login required. Everybody on your network will be able t
 To enable authentication, set the login and password during the first boot on the configuration web page. You can also set it later by updating both settings `login` and `password` :
 
 ```
-curl -X POST 'http://<esp8266_IP>/settings?login=admin&password=mysecret'
+curl -X POST 'http://192.168.1.4/settings?login=admin&password=mysecret'
 ```
 
 All settings are stored into flash and are persistent upon reboot and power loss.
 
 ### How to reset credentials
 
-If you loose the password, you can change it on the configuratino web page. This page will be presented automatically at boot time if it cannot connect to the configured access point.
+If you loose the password, you can change it on the configuration web page. This page will be presented automatically at boot time if it cannot connect to the configured access point.
 
 The second option is to use the reset endpoint :
 
 ```
-curl -X POST 'http://<esp8266_IP>/reset'
+curl -X POST 'http://192.168.1.4/reset'
 ```
 This will erase all settings and reboot the module.
 
-The last option is to completely wipe out the flash. 
+The last option is to completely wipe out the flash :
 
 ```
 esptool.py --port /dev/ttyAMA0 erase_flash
@@ -135,9 +134,9 @@ You will need to re-upload the firmware after this operation.
 
 ## API definition
 
- - GET /channel/<id>
+ - GET /channel/:id
 
-Show the current status of the channel number <id>. <id> need to be either the value 1 or 2.
+Show the current status of the channel number :id. :id need to be either the value 1 or 2.
 
   * Return "application/json" :
 
@@ -186,9 +185,9 @@ Printing last 100 lines of the log:
  ==== END LOG ====
 ```
 
- - PUT /channel/<id>
+ - PUT /channel/:id
 
-Switch on or off the channel number <id>. This is volatile and won't be kept after a reboot. At boot time, the relays are turned off.
+Switch on or off the channel number :id. This is volatile and won't be kept after a reboot. At boot time, the relays are turned off.
 
    * Parameters :
 
@@ -196,7 +195,7 @@ Switch on or off the channel number <id>. This is volatile and won't be kept aft
 
   * Return :
 
-Return the same information as  `GET /channel/<id>`.
+Return the same information as  `GET /channel/:id`.
 
    * Example :
 
@@ -227,12 +226,11 @@ curl -X POST -F 'debug=true' -u admin:mysecret http://192.168.1.4/settings
 
  - POST /reset
 
-Erase both WiFi and AuthBasic settings and restart the module.
-USE WITH CAUTION: Some ESP8266 tend to crash after the reboot.
+Erase both WiFi and AuthBasic settings and restart the module. USE WITH CAUTION: Some ESP8266 tend to crash after the reboot.
 
-     * Return :
+   * Return :
 
-No return. The connection will be resetted as the module is rebooting.
+No return. The connection will be lost as the module is rebooting.
 
 ## License 
 
