@@ -157,7 +157,8 @@ Show the current settings, as stored in flash. See `POST /settings` for details 
 {
   "login": "",
   "password": "<hidden>",
-  "debug": false
+  "debug": false,
+  "serial": false
 }
 ```
 
@@ -210,6 +211,7 @@ Update configuration settings. This is stored in flash and is kept after a power
    * Parameters :
 
      - debug : *[bool]*		Turn on extra logging. (default false)
+     - serial : *[bool]*	Turn on log output on serial port. (default false)
      - login : *[str]*		Auth Basic login. (default empty)
      - password : *[str]*	Auth Basic password. (default empty)
 

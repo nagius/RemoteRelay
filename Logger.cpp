@@ -27,11 +27,17 @@ Logger::Logger()
     ringlog[i][0]='\0';
 
   enableDebug = false;
+  enableSerial = false;
 }
 
 void Logger::setDebug(bool d)
 {
   enableDebug = d;
+}
+
+void Logger::setSerial(bool d)
+{
+  enableSerial = d;
 }
 
 void Logger::debug(const char *fmt, ...)
@@ -63,7 +69,9 @@ void Logger::log(const char *fmt, va_list ap)
   // Add timestamp header
   uint32_t uptime = millis();
   snprintf(ringlog[index], BUF_LEN, "[%d.%03d] %s", uptime / 1000, uptime % 1000, buffer);
-  Serial.println(ringlog[index]);
+
+  if(enableSerial)
+    Serial.println(ringlog[index]);
 
   // Loop over at the begining of the ring
   if (++index >= RINGLOG_SIZE)
@@ -114,6 +122,9 @@ String Logger::getLog()
   }
 
   msg += " ==== END LOG ====\r\n";
+
+  if(enableSerial)
+    Serial.print(msg);
 
   return msg;
 }

@@ -37,6 +37,7 @@ class Logger
     char ringlog[RINGLOG_SIZE][BUF_LEN];
     int index;
     bool enableDebug;
+    bool enableSerial;
     
   public:
   
@@ -45,6 +46,7 @@ class Logger
     void info(const char *, ...);     // Print and store message log
     void debug(const char *, ...);    // Print and store message log if debug mode is enabled
     void setDebug(bool);              // Enable debug mode
+    void setSerial(bool);             // Enable log output on serial port
     String getLog(void);              // Return the current log
   
   private:

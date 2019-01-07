@@ -32,18 +32,20 @@
 
 // Internal constant
 #define AUTHBASIC_LEN 21        // Login or password 20 char max
-#define VERSION "1.0"
+#define VERSION "1.0a"
 #define MODE_ON 1               // See LC-Relay board datasheet for open/close values
 #define MODE_OFF 0
 
 struct ST_SETTINGS {
   bool debug;
+  bool serial;
   char login[AUTHBASIC_LEN];
   char password[AUTHBASIC_LEN];
 };
 
 struct ST_SETTINGS_FLAGS {
   bool debug;
+  bool serial;
   bool login;
   bool password;
 };
@@ -89,7 +91,6 @@ void handleGETDebug()
   if(!isAuthBasicOK())
     return;
  
-  Serial.print(msg);
   server.send(200, "text/plain", msg);
 }
 
@@ -114,7 +115,7 @@ void handleGETSettings()
 void handlePOSTSettings()
 {
   ST_SETTINGS st;
-  ST_SETTINGS_FLAGS isNew = { false, false, false };
+  ST_SETTINGS_FLAGS isNew = { false, false, false, false };
 
   if(!isAuthBasicOK())
     return;
@@ -134,6 +135,11 @@ void handlePOSTSettings()
     {
       st.debug = server.arg(i).equalsIgnoreCase("true");
       isNew.debug = true;
+    }
+    else if(param == "serial")
+    {
+      st.serial = server.arg(i).equalsIgnoreCase("true");
+      isNew.serial = true;
     }
     else if(param == "login")
     {
@@ -158,6 +164,13 @@ void handlePOSTSettings()
     settings.debug = st.debug;
     logger.setDebug(st.debug);
     logger.info("Updated debug to %s.", st.debug ? "true" : "false");
+  }
+
+  if(isNew.serial)
+  {
+    settings.serial = st.serial;
+    logger.setSerial(st.serial);
+    logger.info("Updated serial to %s.", st.serial ? "true" : "false");
   }
 
   if(isNew.login)
@@ -244,7 +257,7 @@ void handlePUTChannel(uint8_t channel)
     server.send(400, "text/plain", "Invalid value: " + value + "\r\n");
     return;
   } 
-  
+
   setChannel(channel, requestedMode);
   server.send(200, "application/json", getJSONState(channel));
 }
@@ -286,7 +299,9 @@ String getJSONSettings()
   json += "\", \"password\": \"<hidden>\"";
   json += ", \"debug\": ";
   json += settings.debug ? "true" : "false";
-  json += "\" }\r\n";
+  json += ", \"serial\": ";
+  json += settings.serial ? "true" : "false";
+  json += " }\r\n";
 
   return json;
 }
@@ -354,6 +369,7 @@ void loadSettings()
   {
     memcpy(&settings, buffer, sizeof(settings));
     logger.setDebug(settings.debug);
+    logger.setSerial(settings.serial);
     logger.info("Loaded settings from flash");
 
     // Display loaded setting on debug
@@ -372,6 +388,7 @@ void setDefaultSettings()
     strcpy(settings.login, DEFAULT_LOGIN);
     strcpy(settings.password, DEFAULT_PASSWORD);
     settings.debug = false;
+    settings.serial = false;
 }
 
 
@@ -405,7 +422,9 @@ void setChannel(uint8_t channel, uint8_t mode)
 
   // Send hex payload
   Serial.write(payload, sizeof(payload));
-  Serial.println(""); // Clear the line for log output
+
+  if(settings.serial)
+    Serial.println(""); // Clear the line for log output
 }
 
 void setup() 
