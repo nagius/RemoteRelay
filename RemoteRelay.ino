@@ -32,7 +32,8 @@
 
 // Internal constant
 #define AUTHBASIC_LEN 21        // Login or password 20 char max
-#define VERSION "1.0a"
+#define BUF_SIZE 256            // Used for string buffers
+#define VERSION "1.1"
 #define MODE_ON 1               // See LC-Relay board datasheet for open/close values
 #define MODE_OFF 0
 
@@ -56,6 +57,7 @@ Logger logger = Logger();
 ST_SETTINGS settings;
 uint8_t channels[] = { MODE_OFF, MODE_OFF };
 bool shouldSaveConfig = false;    // Flag for WifiManager custom parameters
+char buffer[BUF_SIZE];            // Global char* to avoir multiple String concatenation which causes RAM fragmentation
 
 /**
  * HTTP route handlers
@@ -67,7 +69,7 @@ bool shouldSaveConfig = false;    // Flag for WifiManager custom parameters
 void handleGETRoot() 
 {
   // I always loved this HTTP code
-  server.send(418, "text/plain", "\
+  server.send(418, F("text/plain"), F("\
             _           \r\n\
          _,(_)._            \r\n\
     ___,(_______).          \r\n\
@@ -78,7 +80,7 @@ void handleGETRoot()
   `. :           :    /     \r\n\
     `.            :.,'      \r\n\
       `-.________,-'        \r\n\
-  \r\n");
+  \r\n"));
 }
 
 /**
@@ -86,12 +88,10 @@ void handleGETRoot()
  */
 void handleGETDebug()
 {
-  String msg = logger.getLog();
-
   if(!isAuthBasicOK())
     return;
  
-  server.send(200, "text/plain", msg);
+  server.send(200, F("text/plain"), logger.getLog());
 }
 
 /**
@@ -102,7 +102,7 @@ void handleGETSettings()
   if(!isAuthBasicOK())
     return;
  
-  server.send(200, "application/json", getJSONSettings());
+  server.send(200, F("application/json"), getJSONSettings());
 }
 
 /**
@@ -123,7 +123,7 @@ void handlePOSTSettings()
    // Check if args have been supplied
   if(server.args() == 0)
   {
-    server.send(400, "test/plain", "Invalid parameters\r\n");
+    server.send(400, F("test/plain"), F("Invalid parameters\r\n"));
     return;
   }
 
@@ -153,7 +153,7 @@ void handlePOSTSettings()
     }
     else
     {
-      server.send(400, "text/plain", "Unknown parameter: " + param + "\r\n");
+      server.send(400, F("text/plain"), "Unknown parameter: " + param + "\r\n");
       return;
     }
   }
@@ -188,7 +188,7 @@ void handlePOSTSettings()
   saveSettings();
 
   // Reply with current settings
-  server.send(201, "application/json", getJSONSettings());
+  server.send(201, F("application/json"), getJSONSettings());
 }
 
 /**
@@ -209,7 +209,7 @@ void handlePOSTReset()
   saveSettings();
 
   // Send response now
-  server.send(200, "text/plain", "Reset OK");
+  server.send(200, F("text/plain"), F("Reset OK"));
   
   delay(3000);
   logger.info("Restarting...");
@@ -232,14 +232,14 @@ void handlePUTChannel(uint8_t channel)
   // Check if args have been supplied
   if(server.args() != 1)
   {
-    server.send(400, "test/plain", "Invalid parameter\r\n");
+    server.send(400, F("test/plain"), F("Invalid parameter\r\n"));
     return;
   }
 
   // Check if requested arg has been suplied
   if(server.argName(0) != "mode")
   {
-    server.send(400, "text/plain", "Invalid parameter\r\n");
+    server.send(400, F("text/plain"), F("Invalid parameter\r\n"));
     return;
   } 
 
@@ -254,12 +254,16 @@ void handlePUTChannel(uint8_t channel)
   }
   else
   {
-    server.send(400, "text/plain", "Invalid value: " + value + "\r\n");
+    server.send(400, F("text/plain"), "Invalid value: " + value + "\r\n");
     return;
   } 
 
+  // Give some time to the watchdog
+  ESP.wdtFeed();
+  yield();
+
   setChannel(channel, requestedMode);
-  server.send(200, "application/json", getJSONState(channel));
+  server.send(200, F("application/json"), getJSONState(channel));
 }
 
 /**
@@ -270,7 +274,7 @@ void handleGETChannel(uint8_t channel)
   if(!isAuthBasicOK())
     return;
 
-  server.send(200, "application/json", getJSONState(channel));
+  server.send(200, F("application/json"), getJSONState(channel));
 }
 
 /**
@@ -291,31 +295,27 @@ bool isAuthBasicOK()
   return true;
 }
 
-String getJSONSettings()
+char* getJSONSettings()
 {
   //Generate JSON 
-  String json = "{ \"login\": \"";
-  json += settings.login;
-  json += "\", \"password\": \"<hidden>\"";
-  json += ", \"debug\": ";
-  json += settings.debug ? "true" : "false";
-  json += ", \"serial\": ";
-  json += settings.serial ? "true" : "false";
-  json += " }\r\n";
+  snprintf(buffer, BUF_SIZE, "{ \"login\": \"%s\", \"password\": \"<hidden>\", \"debug\": %s, \"serial\": %s }\r\n",
+    settings.login,
+    settings.debug ? "true" : "false",
+    settings.serial ? "true" : "false"
+  );
 
-  return json;
+  return buffer;
 }
 
-String getJSONState(uint8_t channel)
+char* getJSONState(uint8_t channel)
 {
   //Generate JSON 
-  String json = "{ \"channel\": \"";
-  json += channel;
-  json += "\", \"mode\": \"";
-  json += ( channels[channel - 1] == MODE_ON) ? "on" : "off";
-  json += "\" }\r\n";
+  snprintf(buffer, BUF_SIZE, "{ \"channel\": \"%d\", \"mode\": \"%s\" }\r\n",
+    channel,
+    channels[channel - 1] == MODE_ON ? "on" : "off"
+  );
 
-  return json;
+  return buffer;
 }
 
 
@@ -373,7 +373,7 @@ void loadSettings()
     logger.info("Loaded settings from flash");
 
     // Display loaded setting on debug
-    logger.debug("FLASH: %s", getJSONSettings().c_str());
+    logger.debug("FLASH: %s", getJSONSettings());
   }
   else
   {
@@ -419,6 +419,10 @@ void setChannel(uint8_t channel, uint8_t mode)
   
   logger.info("Channel %i switched to %s", channel, (mode == MODE_ON) ? "on" : "off");
   logger.debug("Sending payload %02X%02X%02X%02X", payload[0], payload[1], payload[2], payload[3]);
+
+  // Give some time to the watchdog
+  ESP.wdtFeed();
+  yield();
 
   // Send hex payload
   Serial.write(payload, sizeof(payload));
