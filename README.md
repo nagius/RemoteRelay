@@ -234,6 +234,10 @@ Erase both WiFi and AuthBasic settings and restart the module. USE WITH CAUTION:
 
 No return. The connection will be lost as the module is rebooting.
 
+## Issues
+
+Sometimes the ESP8266 reset when a relay is switched off. I couldn't find anything wrong with the code, the memory management or the watchdog. As this issue occurs only when the ESP8266 is connected to the relay board, I suspect some EMI on the relay release to be messing around with the power regulation of the board. Yes, there is a flyback diode. I tried to filter it with few capacitors here and there but no luck, I would need an oscilloscope to dig further... Any help welcome !
+
 ## License 
 
 Copyleft 2018 - Nicolas AGIUS - GNU GPLv3
