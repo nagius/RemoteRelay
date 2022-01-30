@@ -4,9 +4,10 @@ RemoteRelay is an alternative ESP8266 firmware for the relay board made by LCTec
 ## The board
 
 This board is a two-way relay over WiFi in a compact form factor and with a 3.3v onboard regulator to power the ESP8266.
+Version 1.2 support four-way boards as well.
 
 ![LcTech board](docs/board.jpg)
-See http://www.chinalctech.com/index.php?_m=mod_product&_a=view&p_id=1261
+See http://www.chinalctech.com/cpzx/Programmer/Relay_Module/
 
 You can usually find this cheap device on any chinese electronics retailer.
 

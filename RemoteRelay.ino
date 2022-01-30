@@ -29,11 +29,12 @@
 // Default value
 #define DEFAULT_LOGIN ""        // AuthBasic credentials
 #define DEFAULT_PASSWORD ""     // (default no auth)
+#define FOUR_WAY_MODE           // Enable channels 3 and 4 (comment out to disable)
 
 // Internal constant
 #define AUTHBASIC_LEN 21        // Login or password 20 char max
 #define BUF_SIZE 256            // Used for string buffers
-#define VERSION "1.1"
+#define VERSION "1.2"
 #define MODE_ON 1               // See LC-Relay board datasheet for open/close values
 #define MODE_OFF 0
 
@@ -55,9 +56,14 @@ struct ST_SETTINGS_FLAGS {
 ESP8266WebServer server(80);
 Logger logger = Logger();
 ST_SETTINGS settings;
-uint8_t channels[] = { MODE_OFF, MODE_OFF };
 bool shouldSaveConfig = false;    // Flag for WifiManager custom parameters
 char buffer[BUF_SIZE];            // Global char* to avoir multiple String concatenation which causes RAM fragmentation
+
+#ifndef FOUR_WAY_MODE
+  uint8_t channels[] = { MODE_OFF, MODE_OFF };
+#else
+  uint8_t channels[] = { MODE_OFF, MODE_OFF, MODE_OFF, MODE_OFF };
+#endif
 
 /**
  * HTTP route handlers
@@ -443,7 +449,7 @@ void setup()
   loadSettings();
 
   // Be sure the relay are in the default state (off)
-  for(uint8_t i=0; i<=1; i++)
+  for(uint8_t i=0; i<sizeof(channels); i++)
   {
     setChannel(i+1, channels[i]);
   }
@@ -480,9 +486,15 @@ void setup()
   server.on("/settings", HTTP_POST, handlePOSTSettings);
   server.on("/reset", HTTP_POST, handlePOSTReset);
   server.on("/channel/1", HTTP_PUT, std::bind(&handlePUTChannel, 1));
-  server.on("/channel/2", HTTP_PUT, std::bind(&handlePUTChannel, 2));
   server.on("/channel/1", HTTP_GET, std::bind(&handleGETChannel, 1));
+  server.on("/channel/2", HTTP_PUT, std::bind(&handlePUTChannel, 2));
   server.on("/channel/2", HTTP_GET, std::bind(&handleGETChannel, 2));
+#ifdef FOUR_WAY_MODE
+  server.on("/channel/3", HTTP_PUT, std::bind(&handlePUTChannel, 3));
+  server.on("/channel/3", HTTP_GET, std::bind(&handleGETChannel, 3));
+  server.on("/channel/4", HTTP_PUT, std::bind(&handlePUTChannel, 4));
+  server.on("/channel/4", HTTP_GET, std::bind(&handleGETChannel, 4));
+#endif
   server.onNotFound([]() {
     server.send(404, "text/plain", "Not found\r\n");
   });
