@@ -491,7 +491,33 @@ void setup()
   logger.info("HTTP server started.");
 }
 
+void fakeATFirmware()
+{
+  // pretend to be an AT device here
+  if(Serial.available())
+  {
+    String stringIn=Serial.readStringUntil('\r');
+    Serial.flush();// flush what's left '\n'?
+
+    if(stringIn!="")
+    {
+      logger.debug("Serial received: %s", stringIn);
+
+      if(stringIn.indexOf("AT+")>-1)
+        Serial.println("OK");
+
+      if(stringIn.indexOf("AT+RST")>-1)
+      {
+        // pretend we reset (wait a bit then send the WiFi connected message)
+        delay(1);
+        Serial.println("WIFI CONNECTED\r\nWIFI GOT IP");
+      }
+    }
+  }
+}
+
 void loop()
 {
-    server.handleClient();  
+    server.handleClient();
+    fakeATFirmware();
 }
